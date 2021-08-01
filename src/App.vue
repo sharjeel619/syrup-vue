@@ -54,12 +54,12 @@
       :chartOptions="chart_options"
       :key="line_chart_key"
     />
+    <!-- v-if="selected_stock.length" -->
     <el-table
       :data="table_data"
-      v-if="selected_stock.length"
       max-height="500"
       row-key="_id"
-      @sort="sortTable"
+      @sort-change="sortTable"
       border
     >
       <el-table-column sortable prop="name" label="Stock" />
@@ -113,6 +113,8 @@ export default {
       ],
       stocks_data: {},
       table_data: [],
+      table_col_data: { name: { label: "Stock Name", sortMethod: () => {} } },
+      table_sort: {},
       csv_json_data: [],
       chart_loading: false,
       line_chart_key: Date.now(),
@@ -133,6 +135,7 @@ export default {
           date,
           volume,
           market,
+          _id,
         } = item;
         temp_csv.push({
           name,
@@ -148,9 +151,10 @@ export default {
         if (f_index > -1) {
           temp_arr[f_index].children.push(item);
         } else {
-          temp_arr.push({ ...item, children: [] });
+          temp_arr.push({ name, _id, children: [] });
         }
       });
+      const { order, prop } = this.table_sort;
       this.table_data = [...temp_arr];
       this.csv_json_data = [...temp_csv];
     },
@@ -231,6 +235,9 @@ export default {
     onDateChange(dates) {
       this.chart_data = [];
       this.onStockChange(this.selected_stock, dates);
+    },
+    sortTable({ column, order, prop }) {
+      this.table_sort = { order, prop };
     },
   },
   mounted() {

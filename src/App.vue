@@ -49,6 +49,7 @@
         />
       </el-col>
     </el-row>
+    <p v-if="chart_loading">Loading Stock Data <i class="el-icon-loading" /></p>
     <LineChart
       :chartData="chart_data"
       :chartOptions="chart_options"
@@ -56,20 +57,20 @@
     />
     <el-table
       :data="table_data"
-      v-if="selected_stock.length"
       max-height="500"
       row-key="_id"
-      @sort="sortTable"
+      @sort-change="sortTable"
       border
+      ref="tableRef"
+      v-if="selected_stock.length"
     >
-      <el-table-column sortable prop="name" label="Stock" />
-      <el-table-column sortable prop="open_price" label="Opening price" />
-      <el-table-column sortable prop="high_price" label="Hight price" />
-      <el-table-column sortable prop="low_price" label="Low price" />
-      <el-table-column sortable prop="close_price" label="Closing price" />
-      <el-table-column sortable prop="volume" label="Volume" />
-      <el-table-column prop="date" label="Date" />
-      <el-table-column sortable prop="market" label="Market" />
+      <el-table-column
+        v-for="[item, value] in Object.entries(table_col_data)"
+        :key="item"
+        :sortable="value.sortable"
+        :prop="item"
+        :label="value.label"
+      />
     </el-table>
   </div>
 </template>
@@ -79,6 +80,14 @@ import { Select, Option, DatePicker, Table, TableColumn } from "element-ui";
 import { getStocks, getStockInfoByName } from "./api";
 import JsonCSV from "vue-json-csv";
 import agg_data from "./assets/data/agg_data.json";
+import {
+  sortNumberAscending,
+  sortNumberDescending,
+  sortStringAscending,
+  sortStringDescending,
+  sortDateAscending,
+  sortDateDescending,
+} from "./util";
 const LineChart = () => import("./components/LineChart.vue");
 export default {
   name: "App",
@@ -113,6 +122,57 @@ export default {
       ],
       stocks_data: {},
       table_data: [],
+      table_col_data: {
+        name: {
+          label: "Stock Name",
+          ascending: sortStringAscending,
+          descending: sortStringDescending,
+          sortable: true,
+        },
+        open_price: {
+          label: "Opening Price",
+          ascending: sortNumberAscending,
+          descending: sortNumberDescending,
+          sortable: true,
+        },
+        high_price: {
+          label: "High Price",
+          ascending: sortNumberAscending,
+          descending: sortNumberDescending,
+          sortable: true,
+        },
+        low_price: {
+          label: "Low Price",
+          ascending: sortNumberAscending,
+          descending: sortNumberDescending,
+          sortable: true,
+        },
+        close_price: {
+          label: "Closing Price",
+          ascending: sortNumberAscending,
+          descending: sortNumberDescending,
+          sortable: true,
+        },
+        volume: {
+          label: "Volume",
+          ascending: sortNumberAscending,
+          descending: sortNumberDescending,
+          sortable: true,
+        },
+        date: {
+          label: "Date",
+          ascending: sortDateAscending,
+          descending: sortDateDescending,
+          sortable: true,
+        },
+        market: {
+          label: "Market",
+          ascending: sortStringAscending,
+          descending: sortStringDescending,
+          sortable: false,
+        },
+      },
+      table_sort: {},
       csv_json_data: [],
       chart_loading: false,
       line_chart_key: Date.now(),
@@ -123,6 +183,7 @@ export default {
       if (!this.selected_stock.length) return;
       let temp_arr = [];
       let temp_csv = [];
+      this.$refs.tableRef.clearSort();
       newVal.forEach((item) => {
         const {
           name,
@@ -133,6 +194,7 @@ export default {
           date,
           volume,
           market,
+          _id,
         } = item;
         temp_csv.push({
           name,
@@ -148,7 +210,7 @@ export default {
         if (f_index > -1) {
           temp_arr[f_index].children.push(item);
         } else {
-          temp_arr.push({ ...item, children: [] });
+          temp_arr.push({ name, market, _id, children: [] });
         }
       });
       this.table_data = [...temp_arr];
@@ -231,6 +293,21 @@ export default {
     onDateChange(dates) {
       this.chart_data = [];
       this.onStockChange(this.selected_stock, dates);
+    },
+    sortTable({ column, order, prop }) {
+      this.table_sort = { order, prop };
+      if (!order) return;
+      let temp = JSON.parse(JSON.stringify(this.table_data));
+      if (prop === "name") {
+        temp.sort((a, b) => this.table_col_data[prop][order](a[prop], b[prop]));
+      } else {
+        temp.forEach((item, index, arr) => {
+          arr[index].children.sort((a, b) =>
+            this.table_col_data[prop][order](a[prop], b[prop])
+          );
+        });
+      }
+      this.table_data = [...temp];
     },
   },
   mounted() {

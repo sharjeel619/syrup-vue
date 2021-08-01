@@ -221,7 +221,6 @@ export default {
         }
         temp_data = [...temp_data, ...data];
       }
-      // await this.$nextTick();
       const [start_date, end_date] = date_range || this.date_range;
       temp_data = temp_data.filter(
         (item1) => item1.key >= start_date && item1.key <= end_date
@@ -232,9 +231,6 @@ export default {
     onDateChange(dates) {
       this.chart_data = [];
       this.onStockChange(this.selected_stock, dates);
-      // this.$nextTick(() => {
-      //   this.onStockChange(this.selected_stock, dates);
-      // });
     },
     sortTable(a, b, c) {
       console.log(this.sortTable);

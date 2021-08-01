@@ -40,10 +40,17 @@
         >
         </el-date-picker>
       </el-col>
+      <el-col :span="8" v-if="selected_stock.length && !chart_loading">
+        <p>Download data (.csv):</p>
+        <json-csv
+          class="el-button el-button--primary"
+          :data="csv_json_data"
+          name="stocks.csv"
+        />
+      </el-col>
     </el-row>
     <LineChart
       :chartData="chart_data"
-      v-loading="chart_loading"
       :chartOptions="chart_options"
       :key="line_chart_key"
     />
@@ -52,7 +59,8 @@
       v-if="selected_stock.length"
       max-height="500"
       row-key="_id"
-      v-loading="chart_loading"
+      @sort="sortTable"
+      border
     >
       <el-table-column sortable prop="name" label="Stock" />
       <el-table-column sortable prop="open_price" label="Opening price" />
@@ -69,6 +77,7 @@
 <script>
 import { Select, Option, DatePicker, Table, TableColumn } from "element-ui";
 import { getStocks, getStockInfoByName } from "./api";
+import JsonCSV from "vue-json-csv";
 import agg_data from "./assets/data/agg_data.json";
 const LineChart = () => import("./components/LineChart.vue");
 export default {
@@ -80,6 +89,7 @@ export default {
     "el-date-picker": DatePicker,
     "el-table": Table,
     "el-table-column": TableColumn,
+    "json-csv": JsonCSV,
   },
   data() {
     return {
@@ -103,6 +113,7 @@ export default {
       ],
       stocks_data: {},
       table_data: [],
+      csv_json_data: [],
       chart_loading: false,
       line_chart_key: Date.now(),
     };
@@ -111,7 +122,28 @@ export default {
     chart_data(newVal) {
       if (!this.selected_stock.length) return;
       let temp_arr = [];
+      let temp_csv = [];
       newVal.forEach((item) => {
+        const {
+          name,
+          open_price,
+          high_price,
+          low_price,
+          close_price,
+          date,
+          volume,
+          market,
+        } = item;
+        temp_csv.push({
+          name,
+          open_price,
+          high_price,
+          low_price,
+          close_price,
+          date,
+          volume,
+          market,
+        });
         let f_index = temp_arr.findIndex((item1) => item1.name === item.name);
         if (f_index > -1) {
           temp_arr[f_index].children.push(item);
@@ -120,6 +152,7 @@ export default {
         }
       });
       this.table_data = [...temp_arr];
+      this.csv_json_data = [...temp_csv];
     },
   },
   methods: {
@@ -141,7 +174,6 @@ export default {
         this.agg_data = [...temp_chart_data];
       }
       this.chart_data = [];
-      await this.$nextTick();
       const [start_date, end_date] = this.date_range;
       temp_chart_data = temp_chart_data.filter(
         (item1) => item1.key >= start_date && item1.key <= end_date
@@ -189,7 +221,7 @@ export default {
         }
         temp_data = [...temp_data, ...data];
       }
-      await this.$nextTick();
+      // await this.$nextTick();
       const [start_date, end_date] = date_range || this.date_range;
       temp_data = temp_data.filter(
         (item1) => item1.key >= start_date && item1.key <= end_date
@@ -199,12 +231,13 @@ export default {
     },
     onDateChange(dates) {
       this.chart_data = [];
-      this.$nextTick(() => {
-        this.onStockChange(this.selected_stock, dates);
-      });
+      this.onStockChange(this.selected_stock, dates);
+      // this.$nextTick(() => {
+      //   this.onStockChange(this.selected_stock, dates);
+      // });
     },
-    columnDateSort(a, b) {
-      return new Date(a) - new Date(b);
+    sortTable(a, b, c) {
+      console.log(this.sortTable);
     },
   },
   mounted() {
@@ -222,5 +255,8 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin: 60px 24px 0 24px;
+  .el-row {
+    margin-bottom: 24px;
+  }
 }
 </style>

@@ -232,9 +232,6 @@ export default {
       this.chart_data = [];
       this.onStockChange(this.selected_stock, dates);
     },
-    sortTable(a, b, c) {
-      console.log(this.sortTable);
-    },
   },
   mounted() {
     this.initAggregateChart();
